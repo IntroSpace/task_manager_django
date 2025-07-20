@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="error-container">
+  <h1>Ошибка {{ code }}</h1>
+  <p>{{ message }}</p>
+
+  <a href="https://yandex.ru/search/?text=Что+означает+ошибка+{{ code }}" target="_blank" class="error-search-btn">
+    🔍 Искать в Яндексе
+  </a>
+</div>
+{% endblock %}
+
+<style>
+.error-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  text-align: center;
+  padding: 2rem;
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+.error-container h1 {
+  font-size: 2rem;
+  color: var(--text-color);
+}
+
+.error-container p {
+  font-size: 1.2rem;
+  color: var(--text-color);
+  margin-bottom: 2rem;
+}
+
+.error-search-btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  background: transparent;
+  border: 1px solid var(--text-color);
+  color: var(--text-color);
+  text-decoration: none;
+  transition: 0.3s ease;
+}
+
+.error-search-btn:hover {
+  background: var(--text-color);
+  color: var(--bg-color);
+}
+</style>

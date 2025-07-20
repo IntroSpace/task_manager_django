@@ -1,0 +1,21 @@
+{% for task in tasks %}
+  <div class="task-card {% if task.is_completed %}completed{% endif %}">
+    <h3 class="task-card-name">{{ task.title }}</h3>
+    <p>Дедлайн: {{ task.due_date|date:"d.m.Y H:i" }}</p>
+    <p>
+      Приоритет: <span class="priority priority-{{ task.priority }}">
+        {{ task.get_priority_display }}
+      </span>
+    </p>
+    <p>Статус: {% if task.is_completed %}✅{% else %}❌{% endif %}</p>
+    <div class="actions">
+      <a href="{% url 'task_edit' task.pk %}">✏️ Редактировать</a>
+      <a href="{% url 'task_delete' task.pk %}">🗑️ Удалить</a>
+      <a href="{% url 'task_toggle' task.pk %}">
+        🔄 Поменять статус
+      </a>
+    </div>
+  </div>
+{% empty %}
+  <p>Нет задач.</p>
+{% endfor %}

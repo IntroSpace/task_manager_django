@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+  form {
+    background: var(--card-bg);
+    padding: 0.5rem;
+    border-radius: 4px;
+  }
+  form input, form select, form button {
+    padding: 0.3rem;
+  }
+</style>
+
+<a href="{% url 'task_create' %}" style="display:inline-block;margin-bottom:1rem;">+ Новая задача</a>
+
+<form id="filter-form" style="margin-bottom:1rem;display:flex;gap:1rem;flex-wrap:wrap;">
+  <input type="text" name="q" placeholder="Поиск..." value="{{ request.GET.q }}" />
+  <select name="status">
+    <option value="">Все статусы</option>
+    <option value="completed" {% if request.GET.status == "completed" %}selected{% endif %}>✅ Выполнено</option>
+    <option value="not_completed" {% if request.GET.status == "not_completed" %}selected{% endif %}>❌ Не выполнено</option>
+  </select>
+  <select name="priority">
+    <option value="">Все приоритеты</option>
+    <option value="1" {% if request.GET.priority == "1" %}selected{% endif %}>Высокий</option>
+    <option value="2" {% if request.GET.priority == "2" %}selected{% endif %}>Средний</option>
+    <option value="3" {% if request.GET.priority == "3" %}selected{% endif %}>Низкий</option>
+  </select>
+  <select name="date_filter">
+    <option value="">Все даты</option>
+    <option value="today" {% if request.GET.date_filter == "today" %}selected{% endif %}>Сегодня</option>
+    <option value="week" {% if request.GET.date_filter == "week" %}selected{% endif %}>Эта неделя</option>
+    <option value="overdue" {% if request.GET.date_filter == "overdue" %}selected{% endif %}>Просроченные</option>
+  </select>
+
+  <button type="button" id="reset-btn">♻️ Сбросить</button>
+
+  <select name="sort">
+    <option value="">Сортировка по умолчанию</option>
+    <option value="due_date" {% if request.GET.sort == "due_date" %}selected{% endif %}>По дате</option>
+    <option value="priority" {% if request.GET.sort == "priority" %}selected{% endif %}>По приоритету</option>
+    <option value="title" {% if request.GET.sort == "title" %}selected{% endif %}>По алфавиту</option>
+  </select>
+
+</form>
+
+<div id="task-grid">
+  {% include "tasks/_task_cards.html" with tasks=tasks %}
+</div>
+
+<div id="loading" style="text-align:center;margin-top:1rem;display:none;">Загрузка…</div>
+
+<script>
+let page = 2;
+let loading = false;
+let hasNext = true;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('filter-form');
+  const grid = document.getElementById('task-grid');
+  const loadingDiv = document.getElementById('loading');
+  const resetBtn = document.getElementById('reset-btn');
+
+  function fetchTasks() {
+    const data = new FormData(form);
+    const params = new URLSearchParams(data);
+    loadingDiv.style.display = 'block';
+
+    fetch(`?${params.toString()}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(res => res.json())
+      .then(data => {
+        grid.innerHTML = data.html;
+        loadingDiv.style.display = 'none';
+      })
+      .catch(err => {
+        console.error(err);
+        loadingDiv.style.display = 'none';
+      });
+  }
+
+  form.addEventListener('input', fetchTasks);
+  form.addEventListener('change', fetchTasks); // важно для <select>
+
+  // сброс
+  resetBtn.addEventListener('click', () => {
+    form.reset();              // сбрасываем значения
+    fetchTasks();              // сразу отправляем пустой запрос
+  });
+});
+
+window.addEventListener('scroll', () => {
+  if (!hasNext || loading) return;
+
+  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+    loadMore();
+  }
+});
+
+function loadMore() {
+  loading = true;
+  loadingDiv.style.display = 'block';
+
+  const data = new FormData(document.getElementById('filter-form'));
+  data.set('page', page); // ставим следующую страницу
+
+  const params = new URLSearchParams(data);
+
+  fetch(`?${params.toString()}`, {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      grid.insertAdjacentHTML('beforeend', data.html);
+      loading = false;
+      loadingDiv.style.display = 'none';
+
+      if (data.has_next) {
+        page++;
+      } else {
+        hasNext = false;
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      loading = false;
+      loadingDiv.style.display = 'none';
+    });
+}
+
+// когда меняешь фильтры:
+document.getElementById('filter-form').addEventListener('input', resetPagination);
+document.getElementById('filter-form').addEventListener('change', resetPagination);
+
+function resetPagination() {
+  page = 2;
+  hasNext = true;
+
+  const grid = document.getElementById('task-grid');
+  const loadingDiv = document.getElementById('loading');
+
+  const data = new FormData(document.getElementById('filter-form'));
+  data.set('page', 1);
+
+  const params = new URLSearchParams(data);
+
+  loadingDiv.style.display = 'block';
+
+  fetch(`?${params.toString()}`, {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      grid.innerHTML = data.html;
+      loadingDiv.style.display = 'none';
+
+      if (!data.has_next) {
+        hasNext = false;
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      loadingDiv.style.display = 'none';
+    });
+}
+</script>
+{% endblock %}
